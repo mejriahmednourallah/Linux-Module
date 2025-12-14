@@ -27,7 +27,6 @@
 #include <linux/slab.h>
 #include <linux/ioctl.h>
 #include <linux/timekeeping.h>
-#include <linux/sched/loadavg.h>
 #include <linux/mm.h>
 #include <linux/version.h>
 
@@ -74,16 +73,15 @@ static void collect_snapshot(struct snapshot *s)
     struct sysinfo si;
 
     si_meminfo(&si);
-    get_avenrun(si.loads, 0, SI_LOAD_SHIFT);
 
     s->ts = (u64)ktime_get_seconds();
     s->totalram_kb = (si.totalram * si.mem_unit) >> 10;
     s->freeram_kb = (si.freeram * si.mem_unit) >> 10;
     s->cpu_count = num_online_cpus();
     s->uptime_sec = (unsigned long)si.uptime;
-    s->loads[0] = si.loads[0];
-    s->loads[1] = si.loads[1];
-    s->loads[2] = si.loads[2];
+    s->loads[0] = 0;
+    s->loads[1] = 0;
+    s->loads[2] = 0;
 }
 
 static void snap_timer_fn(struct timer_list *t)
