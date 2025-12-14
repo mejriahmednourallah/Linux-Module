@@ -1,0 +1,39 @@
+name: sysinfo_plus CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-module:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential linux-headers-$(uname -r)
+
+      - name: Build module
+        working-directory: kernel-sysinfo-plus
+        run: make
+
+      - name: List outputs
+        working-directory: kernel-sysinfo-plus
+        run: ls -lh *.ko *.o
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t sysinfo-plus:ci kernel-sysinfo-plus
+
+      - name: Validate build artifacts inside image
+        run: |
+          docker run --rm sysinfo-plus:ci ls -lh /build/sysinfo_plus/sysinfo_plus.ko
