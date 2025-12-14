@@ -28,6 +28,8 @@
 #include <linux/ioctl.h>
 #include <linux/timekeeping.h>
 #include <linux/sched/loadavg.h>
+#include <linux/mm.h>
+#include <linux/version.h>
 
 #define DRIVER_NAME "sysinfo_plus"
 #define PROC_NAME "sysinfo_plus"
@@ -131,6 +133,14 @@ static int proc_open_fn(struct inode *inode, struct file *file)
     return single_open(file, proc_show, NULL);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+static const struct proc_ops proc_fops = {
+    .proc_open = proc_open_fn,
+    .proc_read = seq_read,
+    .proc_lseek = seq_lseek,
+    .proc_release = single_release,
+};
+#else
 static const struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = proc_open_fn,
@@ -138,6 +148,7 @@ static const struct file_operations proc_fops = {
     .llseek = seq_lseek,
     .release = single_release,
 };
+#endif
 
 static ssize_t log_level_show(struct kobject *k, struct kobj_attribute *attr, char *buf)
 {
@@ -310,7 +321,12 @@ static int __init sysinfo_plus_init(void)
         goto err_chrdev;
     }
 
+    /* class_create signature changed in newer kernels (drops module arg). */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+    sys_class = class_create(CLASS_NAME);
+#else
     sys_class = class_create(THIS_MODULE, CLASS_NAME);
+#endif
     if (IS_ERR(sys_class)) {
         ret = PTR_ERR(sys_class);
         printk(KERN_ERR DRIVER_NAME ": class_create failed\n");
